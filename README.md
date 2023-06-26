@@ -1,4 +1,3 @@
-        # Expydite
 #### A Python library for performant functional programming.
 
 Expydite began as a bundle of utility functions for functional programming,
@@ -13,7 +12,7 @@ sequences and an implementation of the Okasaki-Germane-Might algorithm for
 immutable Red-Black trees, allowing Clojure-like semantics with logarithmic
 guarantees on persistent collections in shared memory.
 
-A quick demo:
+### A quick demo:
 #### Native just-in-time compilation:
 ```Python
 from compilation import jit 
