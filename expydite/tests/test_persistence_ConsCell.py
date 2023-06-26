@@ -41,7 +41,7 @@ def test__eq__():
     # Long lists equality doesn't blow stack
     a = None
     b = None
-    for i in range(100):
+    for i in range(10000):
         a = ConsCell(1, a)
         b = ConsCell(1, b)
     assert a == b

@@ -74,8 +74,8 @@ def jit(func):
             handle.write(src)
 
         # Compile with nuitka as a module to a shared object file.
-        subprocess.run(["python3", "-m", "nuitka",
-                        "--static-libpython=auto",
+        subprocess.run(["python", "-m", "nuitka",
+                        #"--static-libpython=auto",
                         "--output-dir=" + build_dir,
                         "--module", py_path],
                        check=True)
@@ -110,8 +110,8 @@ def jit_import(module_name):
         raise ModuleNotFoundError(module_name)
     with tempfile.TemporaryDirectory() as build_dir:
         # Compile with nuitka as a module to a shared object file.
-        subprocess.run(["python3", "-m", "nuitka",
-                        "--static-libpython=auto",
+        subprocess.run(["python", "-m", "nuitka",
+                        #"--static-libpython=auto",
                         "--output-dir=" + build_dir,
                         "--module", py_path],
                        check=True)

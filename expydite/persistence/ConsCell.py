@@ -44,15 +44,14 @@ class AbstractConsCell:
 
 
     def _eq(self, other):
-        return (False if not self._same_type_as(other) else
-                # Avoid bad tail recusion optimization via __ne__
-                # Can still blow the stack here for badly constructed list
-                False if self.car() != other.car() else
-                # Good tail recursion here
-                self.cdr() == other.cdr())
+        return (
+            False if not self._same_type_as(other) else
+            # Avoid bad tail recusion optimization via __ne__
+            # Can still blow the stack here for badly constructed list
+            False if self.car() != other.car() else
+            self.cdr() == other.cdr())
 
     # Want to prevent blowing the stack on long lists.
-    # TODO make sure this works
     __eq__ = tco(_eq)
 
     def __ne__(self, other):
@@ -76,6 +75,7 @@ class AbstractConsCell:
 
         return same_type or other_is_proxy
 
+    # TODO: determine whether this is faster than tco in _eq
     def _equal_cdrs(self, other):
         """
         Avoid blowing the stack by replacing equality checking on cdrs with a
@@ -113,5 +113,3 @@ class SharedConsCell(AbstractConsCell):
         newcdr = make_shared(self.__class__, self._car, self._cdr)
         self._cdr = newcdr
         self._car = newcar
-
-    pass

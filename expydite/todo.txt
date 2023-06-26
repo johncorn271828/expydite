@@ -1,0 +1,22 @@
+MutableConsList:
+    Circular lists?
+ConsList:
+    all done with features? what was it I forgot? heaps or something? Functional array-like thing?
+    Race _equal_cdrs vs tco(==) in tail recursion of _eq
+    Circular lists?
+RBNode:
+    Have insert/delete indicate whether size changed?
+    RBSharedNode class, tests
+RBSet:
+    Think about add/discard without calling __contains__
+    reimplement collections.abc auto methods with shitty implementations
+    Write tests that show it mimicks set formally: RBSet(a op b) == RBSet(a) op RBSet(b)
+RBDict:
+    Think about __setitem__/__delitem__ without calling __getitem__
+    reimplement collections.abc auto methods with shitty implementations
+    Write tests that show it mickicks dict formally
+SharedRBSetNode
+SharedRBSet
+SharedRBDictNode
+SharedRBDict
+pmap object (lazy) etc

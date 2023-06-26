@@ -1,91 +1,248 @@
-from collections.abc import Set
+"""
+A persistent implementation of a collections.MutableSet using the
+Okasaki/Germane/Might algorithm.
+"""
+from collections.abc import MutableSet, Iterable
 
-from expydite.persistence.RBNode import RBSetNode
-from expydite.persistence.rb_utils import _search, _size
-from expydite.persistence.RBIterator import RBIterator
+from expydite.persistence.RBIterator import RBSetIterator
+from expydite.persistence.RBNode import (
+    _make_datum,
+    AbstractRBNode, RBNode, insert, search, delete, E, R, B, _balance)
 
 
-class RBSet(Set):
+class RBSet(MutableSet):
     __slots__ = ["_root", "_length"]
     
     def __init__(self, initializer=None, length=None):
+        ""
         if initializer is None:
-            self._root = initializer
+            self._root = E  # Is this ok?
             self._length = 0
-        elif isinstance(initializer, RBSetNode):
+        elif isinstance(initializer, AbstractRBNode):
             self._root = initializer
-            self._length = _size(initializer) if length is None else length
-        # TODO iterator ctor
+            self._length = len(initializer) if length is None else length
+        elif isinstance(initializer, Iterable):
+            self._root = E
+            self._length = 0
+            it = iter(initializer)
+            for elem in it:
+                self._root = insert(elem, self._root)
+                self._length += 1
+        else: # Some data
+            self._root = RBNode(B, E, _make_datum(initializer), E)
+            self._length = 1
 
-    # Set methods
+            
+    # Set abstract methods
     def __contains__(self, key):
-        return _search(self._root, key) is not None
+        ""
+        #print(f"called contains on a {type(key)}")
+        result =  search(key, self._root) is not None
+        #print(f"finished __contains__ with result {result}")
+        return result
+
     
     def __len__(self): return self._length
 
-    def __iter__(self): return RBIterator(self._root)
+    
+    def __iter__(self): return RBSetIterator(self._root)
 
-    # MutableSet Methods
+    
+    # MutableSet - abstract methods
     def add(self, key):
-        if not self.__contains__(key):
-            self._root = RBSet._ins(self._root, key)
+        ""
+        #print(f"called add({self._root}, {key})")
+        if key not in self: # TODO keep track of length witout this?
+            #print("finished add's contains call")
+            self._root = insert(key, self._root)
             self._length += 1
-
-    def remove(self, key): pass
-
-    # Private helper methods
-    @staticmethod
-    def _ins(node, key):
-        if node is None:
-            return RBSetNode(True, key, None, None)
         else:
-            return (RBSet._lbalance(node.red, node.key,
-                                    RBSet._ins(node.left, key), node.right)
-                    if key < node.key else
-                    RBSet._rbalance(node.red, node.key,
-                                    node.left, RBSet._ins(node.right, key))
-                    if key > node.key else node)
+            #print("nothing to do, finished add")
+            pass
 
-    @staticmethod
-    def _lbalance(red, key, left, right):
-        """
-        See Okasaki page 27. Big pretty picture.
-        """
-        if not red:
-            if left.red:
-                # black node with red left child with red left child
-                if left.left is not None and left.left.red:
-                    return RBSetNode(True, left.key,
-                                     RBSetNode(False, left.left.key,
-                                               left.left.left, left.left.right),
-                                     RBSetNode(False, key,
-                                               left.right, right))
-                # black node with red left child with red right child
-                if left.right is not None and left.right.red:
-                    return RBSetNode(True, left.right.key,
-                                     RBSetNode(False, left.key,
-                                               left.left, left.right.left),
-                                     RBSetNode(False, key,
-                                               left.right.right, right))
-        return RBSetNode(red, key, left, right)
+        
+    def discard(self, key):
+        ""
+        if key in self:  # TODO keep track of length witout this?
+            self._root = delete(key, self._root)
+            self._length -= 1
 
-    @staticmethod
-    def _rbalance(red, key, left, right):
-        if not red:
-            if right.red:
-                # Black node with red right child with red right child
-                if right.right is not None and right.right.red:
-                    return RBSetNode(True, right.key,
-                                     RBSetNode(False, key,
-                                               left, right.left),
-                                     RBSetNode(False, right.right.key,
-                                               right.right.left,
-                                               right.right.right))
-                # Black node with red right child with red left child
-                if right.left is not None and right.left.red:
-                    return RBSetNode(True, right.left.key,
-                                     RBSetNode(False, key,
-                                               left, right.left.left),
-                                     RBSetNode(False, right.key,
-                                               right.left.right, right.right))
-        return RBSetNode(red, key, left, right)
+            
+    # Other methods
+    def __str__(self):
+        ""
+        return str(self._root)
+
+    
+    # Mixin methods from Set - override to prevent silly auto implementation
+    # __le__, __lt__, __eq__, __ne__, __gt__, __ge__, __and__, __or__, __sub__, __xor__, and isdisjoint
+    def __le__(self, other):
+        ""
+        for elem in self:
+            if elem not in other:
+                return False
+
+        return True
+
+
+    def __lt__(self, other):
+        ""
+        return self._length < other._length and self.__le__(other)
+
+
+    def __eq__(self, other):
+        ""
+        if self._length != other._length:
+            return False
+        it = iter(other)
+        for elem in self:
+            try:
+                if next(it) != elem:
+                    return False
+            except StopIteration:
+                return False
+        try:
+            next(it)
+            return False
+        except StopIteration:
+            return True
+
+
+    def __ne__(self, other): return not self.__eq__(other)
+
+
+    def __gt__(self, other):
+        ""
+        return self._length > other._length and self.__ge__(other)
+
+
+    def __ge__(self, other):
+        ""
+        for elem in other:
+            if elem not in self:
+                return False
+
+        return True
+    
+
+    def __and__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            if elem in other:
+                result.add(elem)
+
+        return result
+
+
+    def __or__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            result.add(elem)
+        for elem in other:
+            result.add(elem)
+
+        return result
+
+
+    def __sub__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            if elem not in other:
+                result.add(elem)
+
+        return result
+
+
+    def __xor__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            if elem not in other:
+                result.add(elem)
+        for elem in other:
+            if elem not in self:
+                result.add(elem)
+                
+        return result
+
+
+    def isdisjoint(self, other):
+        ""
+        for elem in self:
+            if elem in other:
+                return False
+
+
+        return True
+
+    
+    # Mixin methods from MutableSet
+    # clear, pop, remove, __ior__, __iand__, __ixor__, and __isub__
+    def clear(self):
+        ""
+        self._root = E
+        self._length = 0
+
+
+    def pop(self):
+        ""
+        node = self._root
+        while node.left:
+            node = node.left
+        result = node.datum.key
+        self.discard(result)
+
+        return result
+
+
+    def remove(self, elem):
+        ""
+        self.discard(elem)
+
+
+    def __ior__(self, other):
+        ""
+        for elem in other:
+            self.add(elem)
+
+        return self
+
+
+    def __iand__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            if elem in other:
+                result.add(elem)
+        self._root = result._root
+        self._length = result._length
+
+        return self
+
+
+    def __ixor__(self, other):
+        ""
+        result = RBSet()
+        for elem in self:
+            if elem not in other:
+                result.add(elem)
+        for elem in other:
+            if elem not in self:
+                result.add(elem)
+
+        self._root = result._root
+        self._length = result._length
+
+        return self
+
+
+    def __isub__(self, other):
+        ""
+        for elem in other:
+            self.discard(elem)
+
+
+        return self
